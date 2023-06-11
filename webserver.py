@@ -1,43 +1,55 @@
 import os
 # import face_recognition as fr
-from flask import Flask, render_template,request, redirect, url_for, jsonify
-import time
+from flask import Flask, render_template, request
+from facetest import Conv_network
+import numpy as np
+from PIL import Image
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = os.path.join('static','faces')
 app.config['UPLOAD_EXTENSIONS'] = ['.jpg', '.jpeg', '.png', '.bmp']
 
-# # initial page
+# initial page
 @app.route('/')
 def index():
     return render_template('index.html')
 
 def delete_old_files():
-    cur_time = time.time()
     directory = app.config['UPLOAD_FOLDER']
-    two_days = 2*24*60*60
     for filename in os.listdir(directory):
         f = os.path.join(directory, filename)
-        if cur_time - os.path.getmtime(f) >= two_days:
-            os.remove(f)
+        os.remove(f)
 
 # after file submition, recognize face and gives answer
 def recognize(filename, origin):
-    # time.sleep(3)
-    # ans, name = fr.test_face(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-    # ans = "Autorizado" if ans else "Não Autorizado"
-    
-    ans = "Autorizado"
-    name = "Gabriel"
-    full_filename = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    flag = 1 if full_filename else 0
-    
+    result = network.predict_face(filename)
+    print(result)
     # Após obter resultado, deleto arquivos antigos
     delete_old_files()
-    
-    if origin == "http://127.0.0.1:5000":
-        return render_template('recognize.html', ans=ans, name=name, filename=filename)
-    return jsonify({'name': name, 'ans': ans}) if flag else jsonify({'ans': 'no'})
+    print(origin)
+    if origin == "http://192.168.15.6:5000":
+        return render_template('recognize.html', ans=result, filename=filename)
+    return result["result"] == "Approved"
+    # return jsonify({'name': name, 'ans': ans}) if flag else jsonify({'ans': 'no'})
+
+@app.route('/oi', methods=['GET'])
+def oi():
+    return "oi"
+
+@app.route('/receive-img', methods=['POST'])
+def receive_img():
+    print("oi")
+    r = request
+    print(f"len of r.data = {len(r.data)}")
+    nparr = np.frombuffer(r.data, np.uint8)
+    mat = np.reshape(nparr, (240, 320))
+    img = Image.fromarray(mat, 'L')
+    print(img)
+    dirname = '\\'.join(os.path.dirname(__file__).split("/"))
+    full_filename = os.path.join(dirname, app.config['UPLOAD_FOLDER'], 'image.png')
+    print(full_filename)
+    img.save(full_filename)
+    recognize(full_filename, 'arduino')
 
 # saves uploaded image and call recognize function
 @app.route('/send-file', methods=['POST'])
@@ -55,4 +67,5 @@ def upload_img():
     return 'Error in image processing'
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    network = Conv_network(224, 224)
+    app.run(host='0.0.0.0', port=5000, debug=True)
