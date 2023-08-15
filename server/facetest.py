@@ -18,10 +18,10 @@ class Conv_network:
 
     def test_setup(self):
         # load trained model
-        self.model = load_model(f'./resources/model.h5')
+        self.model = load_model(r'.\server/resources/model.h5')
 
         # load the training labels
-        face_label_filename = f'./resources/face-labels.pickle'
+        face_label_filename = f'./server/resources/face-labels.pickle'
         with open(face_label_filename, "rb") as f:
             class_dictionary = pickle.load(f)
 

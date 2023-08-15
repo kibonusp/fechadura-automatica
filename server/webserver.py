@@ -27,7 +27,7 @@ def recognize(filename, origin):
     # Após obter resultado, deleto arquivos antigos
     delete_old_files()
     print(origin)
-    if origin == "http://192.168.15.6:5000":
+    if origin != 'arduino':
         return render_template('recognize.html', ans=result, filename=filename)
     return result["result"] == "Approved"
     # return jsonify({'name': name, 'ans': ans}) if flag else jsonify({'ans': 'no'})
@@ -49,7 +49,7 @@ def receive_img():
     full_filename = os.path.join(dirname, app.config['UPLOAD_FOLDER'], 'image.png')
     print(full_filename)
     img.save(full_filename)
-    recognize(full_filename, 'arduino')
+    return recognize(full_filename, 'arduino')
 
 # saves uploaded image and call recognize function
 @app.route('/send-file', methods=['POST'])
